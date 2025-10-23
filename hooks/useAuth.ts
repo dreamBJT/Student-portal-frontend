@@ -10,8 +10,8 @@ export function useAuth() {
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    console.log("Login attempt:", email);
+  const login = async ({ user, token }: { user: any; token: string }) => {
+    setUser(user);
   };
 
   const logout = async () => {
