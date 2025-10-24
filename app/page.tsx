@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import Navbar from '@/components/layout/Navbar';
+import Footer from '@/components/layout/Footer';
 import {
   Users,
   Vote,
@@ -111,8 +113,9 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
+      <Navbar />
       {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center justify-center text-white overflow-hidden">
+      <section className="relative h-[700px] flex items-center justify-center text-white overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-[#002B7F]/95 to-[#002B7F]/80 z-10" />
         <div className="absolute inset-0 w-full h-full">
           <ImageWithFallback
@@ -297,6 +300,7 @@ export default function HomePage() {
           </Button>
         </div>
       </section>
+      <Footer />
     </div>
   );
 }
