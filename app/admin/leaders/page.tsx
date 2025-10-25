@@ -16,6 +16,19 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { GraduationCap, Linkedin, Mail, Globe, Edit, Trash } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function LeadersPage() {
   const leaders = [
@@ -79,7 +92,91 @@ export default function LeadersPage() {
               <SelectItem value="2024">2024</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">+ Add Leader</Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">+ Add Leader</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Add New Leader</DialogTitle>
+                <DialogDescription>Add a student leader or representative</DialogDescription>
+              </DialogHeader>
+              <form className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input id="name" placeholder="Enter leader name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Position</Label>
+                    <Select defaultValue="president">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="president">Student President</SelectItem>
+                        <SelectItem value="vice">Vice President</SelectItem>
+                        <SelectItem value="secretary">Secretary General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Department</Label>
+                    <Select defaultValue="cs">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select department" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cs">Computer Science</SelectItem>
+                        <SelectItem value="eng">Engineering</SelectItem>
+                        <SelectItem value="ba">Business Administration</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="email@injibara.edu.et" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Profile Photo</Label>
+                  <div className="border-2 border-dashed rounded-md p-6 text-center text-sm text-gray-600">
+                    <div className="mx-auto mb-2 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100">⬆️</div>
+                    <div>Click to upload or drag and drop</div>
+                    <div className="mt-3">
+                      <Input type="file" accept="image/*" className="mx-auto w-auto" />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Short Bio / Tagline</Label>
+                  <Textarea id="bio" placeholder="Enter a short bio or tagline..." />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="linkedin">LinkedIn</Label>
+                    <Input id="linkedin" placeholder="Profile URL" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="twitter">Twitter</Label>
+                    <Input id="twitter" placeholder="@username" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" placeholder="+251..." />
+                  </div>
+                </div>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <DialogClose asChild>
+                    <Button type="button" variant="secondary">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit" className="bg-blue-900 hover:bg-blue-800">Add Leader</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
