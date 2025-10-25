@@ -1,63 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  UserCog,
-  Settings,
+  Database,
+  Shield,
+  Lock,
   FileText,
   LogOut,
+  UserCog,
+  Settings,
 } from "lucide-react";
 
 export default function SuperAdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Redirect to home screen
+    router.push("/");
+  };
 
   const links = [
     { href: "/superadmin", label: "Dashboard", Icon: LayoutDashboard },
-    { href: "/superadmin/users", label: "User Management", Icon: Users },
-    { href: "/superadmin/admins", label: "Admin Management", Icon: UserCog },
-    { href: "/superadmin/system", label: "System Settings", Icon: Settings },
-    { href: "/superadmin/logs", label: "Activity Logs", Icon: FileText },
+    { href: "/superadmin/UserManagementPage", label: "User Management", Icon: Users },
+    {
+      href: "/superadmin/DatabaseBackupPage",
+      label: "Database & Backup",
+      Icon: Database,
+    },
+    { href: "/superadmin/SecurityPage", label: "Security Center", Icon: Lock },
+    { href: "/superadmin/ActivityLogsPage", label: "Activity Logs", Icon: FileText },
+    { href: "/superadmin/SystemSettingsPage", label: "System Settings", Icon: Settings },
   ];
 
   return (
-    <aside className="w-64 bg-[#002B7F] text-white flex flex-col h-screen sticky top-0">
-      <div className="flex items-center gap-2 px-6 py-4 border-b border-white/20">
-        <div className="bg-yellow-500 text-black font-bold rounded-full w-10 h-10 flex items-center justify-center">
-          IU
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold">OPVS-IU</h1>
-          <p className="text-sm opacity-80">Super Admin</p>
+    <aside className="w-64 text-white flex flex-col min-h-screen bg-gradient-to-b from-[#08307a] to-[#001f4d]">
+      {/* Header */}
+      <div className="px-5 pt-6 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-[#FFB400] flex items-center justify-center">
+            <Shield className="text-[#00205a]" size={20} />
+          </div>
+          <div>
+            <h2 className="text-white text-lg font-semibold">Super Admin</h2>
+            <p className="text-sm text-[#cfe0ff]">OPVS-IU Control</p>
+          </div>
         </div>
       </div>
-      <nav className="flex-1 p-3 space-y-2">
+
+      {/* Navigation */}
+      <nav className="flex-1 px-4 py-6 space-y-3">
         {links.map(({ href, label, Icon }) => {
-          const active = pathname === href || (href !== "/superadmin" && pathname.startsWith(href));
+          const active =
+            pathname === href ||
+            (href !== "/superadmin" && pathname.startsWith(href));
           return (
-            <Link
-              key={href}
-              href={href}
-              className={`relative flex items-center gap-4 px-6 py-4 rounded-xl transition-colors ${
-                active
-                  ? "bg-[#0B3CA8]/80 hover:bg-[#0B3CA8] before:content-[''] before:absolute before:left-1.5 before:top-1/2 before:-translate-y-1/2 before:h-7 before:w-1.5 before:rounded-full before:bg-yellow-400"
-                  : "hover:bg-white/10"
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-sm font-medium">{label}</span>
+            <Link key={href} href={href} className="block">
+              <div
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-150 ${
+                  active
+                    ? "bg-[#FFB400] text-[#00205a] shadow-md"
+                    : "text-white hover:bg-white/5"
+                }`}
+              >
+                <Icon
+                  className={`${
+                    active ? "text-[#00205a]" : "text-white"
+                  } w-5 h-5`}
+                />
+                <span className="font-medium">{label}</span>
+              </div>
             </Link>
           );
         })}
       </nav>
-      <div className="p-4 border-t border-white/20">
-        <button className="flex items-center gap-2 text-sm font-medium opacity-90 hover:opacity-100">
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
+
+      {/* Logout Button */}
+      <div className="px-4 py-3">
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-3 bg-[#08307a] border border-white/20 rounded-lg shadow-sm transition-all duration-150 hover:bg-[#001f4d] hover:shadow-md w-full"
+        >
+          <LogOut className="w-5 h-5 text-white" />
+          <span className="text-sm font-medium text-white">Logout</span>
         </button>
-        <p className="text-xs opacity-70 mt-2">© 2025 Injibara University</p>
+      </div>
+
+      {/* User Profile Section */}
+      <div className="px-4 py-5 border-t border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
+            <span className="font-semibold">SA</span>
+          </div>
+          <div>
+            <p className="text-sm font-medium">Super Admin</p>
+            <p className="text-xs text-[#cfe0ff]">OPVS-IU Control</p>
+          </div>
+        </div>
       </div>
     </aside>
   );
