@@ -165,7 +165,6 @@ export default function StudentsPage() {
               <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium h-11">+ Add Student</Button>
         </div>
       </div>
 

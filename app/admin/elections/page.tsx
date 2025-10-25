@@ -1,3 +1,5 @@
+"use client";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -8,9 +10,23 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { ClipboardList, Eye, Edit, Trash } from "lucide-react";
+import { ClipboardList, Eye, Edit, Trash, Calendar as CalendarIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ElectionsPage() {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [position, setPosition] = useState("President");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [maxCandidates, setMaxCandidates] = useState<number | "">(10);
+  const [showResultsDuringVoting, setShowResultsDuringVoting] = useState(true);
   const elections = [
     {
       name: "2025 Student President Election",
@@ -70,10 +86,106 @@ export default function ElectionsPage() {
             <p className="text-gray-500">Create and manage student elections</p>
           </div>
         </div>
-        <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
+        <Button onClick={() => setOpen(true)} className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium">
           + Create New Election
         </Button>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>Create New Election</DialogTitle>
+            <DialogDescription>
+              Set up a new election for student leadership positions
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">Election Title</Label>
+              <Input
+                id="title"
+                placeholder="e.g., 2025 Student President Election"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Position</Label>
+              <Select value={position} onValueChange={setPosition}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="President">President</SelectItem>
+                  <SelectItem value="Vice President">Vice President</SelectItem>
+                  <SelectItem value="Secretary">Secretary</SelectItem>
+                  <SelectItem value="Treasurer">Treasurer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="start">Start Date</Label>
+              <Input
+                id="start"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end">End Date</Label>
+              <Input
+                id="end"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                placeholder="Provide details about this election..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="max-candidates">Maximum Candidates</Label>
+              <Input
+                id="max-candidates"
+                type="number"
+                min={1}
+                value={maxCandidates}
+                onChange={(e) => setMaxCandidates(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+              <p className="text-xs text-muted-foreground">Maximum number of candidates allowed for this election</p>
+            </div>
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <p className="text-sm font-medium">Show Results During Voting</p>
+                  <p className="text-xs text-muted-foreground">Display live results while voting is active</p>
+                </div>
+                <Switch
+                  checked={showResultsDuringVoting}
+                  onCheckedChange={setShowResultsDuringVoting}
+                  aria-label="Show results during voting"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <div className="flex w-full items-center justify-end gap-2">
+              <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-blue-900 hover:bg-blue-800">
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                Save Election
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardContent className="p-4">

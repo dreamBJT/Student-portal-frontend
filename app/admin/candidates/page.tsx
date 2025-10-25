@@ -1,3 +1,5 @@
+"use client";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,8 +19,19 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Users, Eye, CheckCircle, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function CandidatesPage() {
+  const [open, setOpen] = useState(false);
+  const [candidatePhoto, setCandidatePhoto] = useState<File | null>(null);
+  const [candidateName, setCandidateName] = useState("");
+  const [candidateDept, setCandidateDept] = useState("Computer Science");
+  const [candidateYear, setCandidateYear] = useState("Year 1");
+  const [candidatePosition, setCandidatePosition] = useState("President");
+  const [candidateSlogan, setCandidateSlogan] = useState("");
+  const [candidateManifesto, setCandidateManifesto] = useState("");
   const candidates = [
     {
       name: "Ahmed Hassan",
@@ -117,11 +130,107 @@ export default function CandidatesPage() {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium h-11">
+          <Button onClick={() => setOpen(true)} className="bg-yellow-500 hover:bg-yellow-600 text-black font-medium h-11">
             + Add Candidate
           </Button>
         </div>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-[640px]">
+          <DialogHeader>
+            <DialogTitle>Add New Candidate</DialogTitle>
+            <DialogDescription>Add a candidate to an election manually</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-1">
+            <div className="space-y-2">
+              <Label>Candidate Photo</Label>
+              <label htmlFor="candidate-photo" className="block rounded-md border-2 border-dashed p-6 text-center text-sm text-muted-foreground cursor-pointer">
+                <div className="space-y-2">
+                  <div className="text-2xl">⬆️</div>
+                  <div>Click to upload or drag and drop</div>
+                  <div>
+                    <Button type="button" variant="outline" className="mt-2">Choose File</Button>
+                  </div>
+                </div>
+                <input
+                  id="candidate-photo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setCandidatePhoto(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              {candidatePhoto && (
+                <p className="text-xs text-muted-foreground">Selected: {candidatePhoto.name}</p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="candidate-name">Full Name</Label>
+                <Input id="candidate-name" placeholder="Enter candidate name" value={candidateName} onChange={(e) => setCandidateName(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Department</Label>
+                <Select value={candidateDept} onValueChange={setCandidateDept}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Computer Science">Computer Science</SelectItem>
+                    <SelectItem value="Electrical Engineering">Electrical Engineering</SelectItem>
+                    <SelectItem value="Mechanical Engineering">Mechanical Engineering</SelectItem>
+                    <SelectItem value="Business Administration">Business Administration</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Academic Year</Label>
+                <Select value={candidateYear} onValueChange={setCandidateYear}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Year 1">Year 1</SelectItem>
+                    <SelectItem value="Year 2">Year 2</SelectItem>
+                    <SelectItem value="Year 3">Year 3</SelectItem>
+                    <SelectItem value="Year 4">Year 4</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Select value={candidatePosition} onValueChange={setCandidatePosition}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="President">President</SelectItem>
+                    <SelectItem value="Vice President">Vice President</SelectItem>
+                    <SelectItem value="Secretary">Secretary</SelectItem>
+                    <SelectItem value="Treasurer">Treasurer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="candidate-slogan">Campaign Slogan</Label>
+                <Input id="candidate-slogan" placeholder="Enter campaign slogan" value={candidateSlogan} onChange={(e) => setCandidateSlogan(e.target.value)} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="candidate-manifesto">Manifesto</Label>
+                <Textarea id="candidate-manifesto" placeholder="Enter candidate's manifesto..." value={candidateManifesto} onChange={(e) => setCandidateManifesto(e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <div className="flex w-full items-center justify-end gap-2">
+              <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button className="bg-blue-900 hover:bg-blue-800">Save Candidate</Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardContent className="p-4">
