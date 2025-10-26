@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { authService } from '../services/auth.service';
 
 interface User {
   id: string;
@@ -24,19 +25,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(false);
+    // Restore authentication state from localStorage on app start
+    const token = localStorage.getItem('token');
+    if (token) {
+      // Validate token with backend and get user info
+      authService.validateToken(token)
+        .then((response) => {
+          setUser({
+            id: response.user.id,
+            email: response.user.studentId || '',
+            name: response.user.name,
+            role: response.user.role
+          });
+        })
+        .catch((error) => {
+          console.error('Token validation failed:', error);
+          setUser(null);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const login = async (email: string, password: string) => {
-    console.log("Login:", email);
+    try {
+      const response = await authService.login(email, password);
+      setUser({
+        id: response.user.id,
+        email: response.user.studentId || email, // Use studentId if available, fallback to email
+        name: response.user.name,
+        role: response.user.role
+      });
+      localStorage.setItem('token', response.token);
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
   };
 
   const logout = async () => {
     setUser(null);
+    localStorage.removeItem('token');
   };
 
   const register = async (email: string, password: string, name: string) => {
-    console.log("Register:", email);
+    try {
+      const response = await authService.register(email, password, name);
+      setUser({
+        id: response.user.id,
+        email: response.user.studentId || email, // Use studentId if available, fallback to email
+        name: response.user.name,
+        role: response.user.role
+      });
+      localStorage.setItem('token', response.token);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
   };
 
   return (
