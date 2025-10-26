@@ -12,10 +12,12 @@ export function useAuth() {
 
   const login = async ({ user, token }: { user: any; token: string }) => {
     setUser(user);
+    localStorage.setItem('token', token);
   };
 
   const logout = async () => {
     setUser(null);
+    localStorage.removeItem('token');
   };
 
   const register = async (email: string, password: string, name: string) => {

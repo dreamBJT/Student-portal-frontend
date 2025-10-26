@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
@@ -14,31 +14,31 @@ import {
   Shield, Users, Plus, Edit, Trash2, Eye, Settings,
   LogOut, CheckCircle, Clock, AlertCircle, UserCheck
 } from "lucide-react";
+import { usersService } from "../../../services/users.service";
+import { User } from "../../../types/user";
 import { toast } from "sonner";
 
 interface UserManagementPageProps {
   // Removed unused onNavigate prop
 }
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  permissions: {
-    elections: { create: boolean; edit: boolean; delete: boolean };
-    news: { create: boolean; edit: boolean; delete: boolean };
-    users: { create: boolean; edit: boolean; delete: boolean };
-  };
-  status: 'Active' | 'Inactive' | 'Suspended';
-  lastLogin: string;
-}
-
 export default function UserManagementPage({}: UserManagementPageProps) {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState("admins");
+  const [activeTab, setActiveTab] = useState("all");
+
+  // Form state for adding new user
+  const [newUserForm, setNewUserForm] = useState({
+    name: '',
+    email: '',
+    role: 'student' as 'student' | 'admin' | 'superadmin',
+    password: ''
+  });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const [permissions, setPermissions] = useState({
     elections: { create: false, edit: false, delete: false },
@@ -46,155 +46,225 @@ export default function UserManagementPage({}: UserManagementPageProps) {
     users: { create: false, edit: false, delete: false }
   });
 
+  // Fetch users on component mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedUsers = await usersService.getUsers();
+      console.log('Fetched users from API:', fetchedUsers); // Debug log
 
-  const admins = [
-    {
-      id: 1,
-      name: "Admin User",
-      email: "admin@injibara.edu.et",
-      role: "Super Admin",
-      permissions: {
-        elections: { create: true, edit: true, delete: true },
-        news: { create: true, edit: true, delete: true },
-        users: { create: true, edit: true, delete: true }
-      },
-      status: "Active" as const,
-      lastLogin: "2 hours ago"
-    },
-    {
-      id: 2,
-      name: "Mike Johnson",
-      email: "mike@injibara.edu.et",
-      role: "Admin",
-      permissions: {
-        elections: { create: true, edit: true, delete: false },
-        news: { create: true, edit: true, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Active" as const,
-      lastLogin: "1 day ago"
-    },
-    {
-      id: 3,
-      name: "Lisa Anderson",
-      email: "lisa@injibara.edu.et",
-      role: "Admin",
-      permissions: {
-        elections: { create: true, edit: true, delete: false },
-        news: { create: true, edit: true, delete: true },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Active" as const,
-      lastLogin: "3 hours ago"
-    },
-    {
-      id: 4,
-      name: "Robert Chen",
-      email: "robert@injibara.edu.et",
-      role: "Admin",
-      permissions: {
-        elections: { create: true, edit: false, delete: false },
-        news: { create: true, edit: true, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Inactive" as const,
-      lastLogin: "5 days ago"
+      // Validate that users have valid IDs (either id or _id)
+      const validUsers = fetchedUsers.filter(user => {
+        const userId = user.id || user._id;
+        if (!userId) {
+          console.warn('User with invalid ID found:', user);
+          return false;
+        }
+        return true;
+      });
+
+      console.log('Valid users after filtering:', validUsers); // Debug log
+      setUsers(validUsers);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
+      toast.error('Failed to fetch users');
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const moderators = [
-    {
-      id: 5,
-      name: "Sarah Williams",
-      email: "sarah.w@injibara.edu.et",
-      role: "Moderator",
-      permissions: {
-        elections: { create: false, edit: true, delete: false },
-        news: { create: true, edit: true, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Active" as const,
-      lastLogin: "1 hour ago"
-    },
-    {
-      id: 6,
-      name: "James Brown",
-      email: "james.b@injibara.edu.et",
-      role: "Moderator",
-      permissions: {
-        elections: { create: false, edit: true, delete: false },
-        news: { create: true, edit: true, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Active" as const,
-      lastLogin: "4 hours ago"
-    },
-    {
-      id: 7,
-      name: "Emily Davis",
-      email: "emily.d@injibara.edu.et",
-      role: "Moderator",
-      permissions: {
-        elections: { create: false, edit: false, delete: false },
-        news: { create: true, edit: true, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Suspended" as const,
-      lastLogin: "2 weeks ago"
-    }
-  ];
-
-  const systemUsers = [
-    {
-      id: 8,
-      name: "Election Service Bot",
-      email: "election-bot@system.local",
-      role: "System User",
-      permissions: {
-        elections: { create: true, edit: true, delete: false },
-        news: { create: false, edit: false, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Active" as const,
-      lastLogin: "Always active"
-    },
-    {
-      id: 9,
-      name: "Backup Service",
-      email: "backup@system.local",
-      role: "System User",
-      permissions: {
-        elections: { create: false, edit: false, delete: false },
-        news: { create: false, edit: false, delete: false },
-        users: { create: false, edit: false, delete: false }
-      },
-      status: "Active" as const,
-      lastLogin: "Always active"
-    }
-  ];
+  };
 
   const handleEditPermissions = (user: User) => {
+    // Get the user ID (either id or _id)
+    const userId = user.id || user._id;
+
+    // Validate that user ID exists
+    if (!userId) {
+      toast.error('Invalid user ID. Cannot edit permissions.');
+      console.error('User ID is invalid:', user);
+      return;
+    }
+
     setSelectedUser(user);
-    setPermissions(user.permissions);
+    setPermissions(user.permissions || {
+      elections: { create: false, edit: false, delete: false },
+      news: { create: false, edit: false, delete: false },
+      users: { create: false, edit: false, delete: false }
+    });
     setShowPermissionModal(true);
   };
 
-  const handleSavePermissions = () => {
+  const handleSavePermissions = async () => {
     if (selectedUser) {
-      toast.success(`Permissions updated for ${selectedUser.name}`);
-      setShowPermissionModal(false);
-      setSelectedUser(null);
+      try {
+        // Get the user ID (either id or _id)
+        const userId = selectedUser.id || selectedUser._id;
+
+        // Validate that user ID exists
+        if (!userId) {
+          toast.error('Invalid user ID. Cannot update permissions.');
+          console.error('Selected user ID is invalid:', selectedUser);
+          return;
+        }
+
+        await usersService.updateUser(userId, {
+          permissions
+        });
+        toast.success(`Permissions updated for ${selectedUser.username || selectedUser.name || 'User'}`);
+        setShowPermissionModal(false);
+        setSelectedUser(null);
+        await fetchUsers(); // Refresh the users list
+      } catch (err) {
+        console.error('Error updating permissions:', err);
+
+        // Provide more specific error messages
+        if (err instanceof Error) {
+          if (err.message.includes('500')) {
+            toast.error('Server error occurred. Please try again later.');
+          } else if (err.message.includes('404')) {
+            toast.error('User not found. The user may have been deleted.');
+          } else if (err.message.includes('403') || err.message.includes('401')) {
+            toast.error('You do not have permission to update this user.');
+          } else if (err.message.includes('Network Error') || err.message.includes('timeout')) {
+            toast.error('Network error. Please check your connection and try again.');
+          } else {
+            toast.error(`Failed to update permissions: ${err.message}`);
+          }
+        } else {
+          toast.error('An unknown error occurred while updating permissions.');
+        }
+      }
     }
   };
 
-  const handleDeleteUser = (user: User) => {
-    toast.success(`User ${user.name} has been removed`);
+  const handleDeleteUser = async (user: User) => {
+    if (confirm(`Are you sure you want to delete ${user.username || user.name || 'this user'}? This action cannot be undone.`)) {
+      try {
+        // Get the user ID (either id or _id)
+        const userId = user.id || user._id;
+
+        // Validate that user ID exists
+        if (!userId) {
+          toast.error('Invalid user ID. Cannot delete user.');
+          console.error('User ID is invalid:', user);
+          return;
+        }
+
+        console.log('Deleting user:', user); // Debug log
+        await usersService.deleteUser(userId);
+        toast.success(`User ${user.username || user.name || 'User'} has been deleted`);
+        await fetchUsers(); // Refresh the users list
+      } catch (err) {
+        console.error('Error deleting user:', err);
+
+        // Provide more specific error messages
+        if (err instanceof Error) {
+          if (err.message.includes('500')) {
+            toast.error('Server error occurred. Please try again later.');
+          } else if (err.message.includes('404')) {
+            toast.error('User not found. The user may have already been deleted.');
+          } else if (err.message.includes('403') || err.message.includes('401')) {
+            toast.error('You do not have permission to delete this user.');
+          } else if (err.message.includes('Network Error') || err.message.includes('timeout')) {
+            toast.error('Network error. Please check your connection and try again.');
+          } else {
+            toast.error(`Failed to delete user: ${err.message}`);
+          }
+        } else {
+          toast.error('An unknown error occurred while deleting the user.');
+        }
+      }
+    }
   };
 
-  const handleAddUser = () => {
-    toast.success("New user has been added successfully");
-    setShowAddUserModal(false);
+  const handleAddUser = async () => {
+    if (!newUserForm.name.trim()) {
+      toast.error('Please enter a full name');
+      return;
+    }
+
+    if (!newUserForm.email.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+
+    if (!newUserForm.password.trim()) {
+      toast.error('Please enter a temporary password');
+      return;
+    }
+
+    if (newUserForm.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newUserForm.email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    try {
+      setIsCreatingUser(true);
+
+      // Log authentication token for debugging
+      const token = localStorage.getItem("token");
+      console.log('Auth token present:', !!token);
+      console.log('Auth token length:', token?.length || 0);
+
+      const requestData = {
+        name: newUserForm.name,
+        email: newUserForm.email,
+        role: newUserForm.role,
+        password: newUserForm.password
+      };
+
+      console.log('About to create user with data:', {
+        ...requestData,
+        password: '[REDACTED]'
+      });
+
+      await usersService.createUserBySuperAdmin(requestData);
+      toast.success("New user has been added successfully");
+      setShowAddUserModal(false);
+      setNewUserForm({ name: '', email: '', role: 'student' as 'student' | 'admin' | 'superadmin', password: '' });
+      await fetchUsers(); // Refresh the users list
+    } catch (err) {
+      console.error('Error creating user:', err);
+
+      // Provide more specific error messages based on error type
+      if (err instanceof Error) {
+        const axiosError = err as any;
+
+        if (axiosError.response?.status === 500) {
+          toast.error('Server error occurred. Please check the console for more details.');
+          console.error('Backend returned 500 error. Check service logs for specific issues.');
+          console.error('Response data:', axiosError.response?.data);
+        } else if (axiosError.response?.status === 401) {
+          toast.error('Authentication failed. Please log in again.');
+          localStorage.removeItem("token");
+          window.location.href = "/auth/login";
+        } else if (axiosError.response?.status === 403) {
+          toast.error('You do not have permission to create users.');
+        } else if (axiosError.response?.status === 400) {
+          toast.error('Invalid request data. Please check your input.');
+          console.error('400 Bad Request - Backend validation failed:', axiosError.response?.data);
+        } else if (axiosError.code === 'ERR_NETWORK') {
+          toast.error('Network error. Please check your connection and try again.');
+        } else {
+          toast.error(`Failed to create user: ${err.message}`);
+        }
+      } else {
+        toast.error('An unknown error occurred while creating the user.');
+      }
+    } finally {
+      setIsCreatingUser(false);
+    }
   };
 
   const togglePermission = (module: 'elections' | 'news' | 'users', action: 'create' | 'edit' | 'delete') => {
@@ -208,6 +278,11 @@ export default function UserManagementPage({}: UserManagementPageProps) {
   };
 
   const getPermissionSummary = (user: User) => {
+    // Check if permissions exist and are not null
+    if (!user.permissions) {
+      return "0/9";
+    }
+
     const total = Object.values(user.permissions).reduce((acc, perm) => {
       return acc + Object.values(perm).filter(Boolean).length;
     }, 0);
@@ -217,21 +292,21 @@ export default function UserManagementPage({}: UserManagementPageProps) {
   const getUsersByTab = () => {
     switch (activeTab) {
       case "admins":
-        return admins;
-      case "moderators":
-        return moderators;
-      case "system":
-        return systemUsers;
+        return users.filter(user => user.role === 'admin' || user.role === 'superadmin');
+      case "students":
+        return users.filter(user => user.role === 'student');
       default:
-        return admins;
+        return users;
     }
   };
 
-  const totalAdmins = admins.length;
-  const totalModerators = moderators.length;
-  const totalSystemUsers = systemUsers.length;
-  const activeRoles = 3;
-  const pendingRequests = 2;
+  const totalUsers = users.length;
+  const adminUsers = users.filter(user => user.role === 'admin' || user.role === 'superadmin');
+  const studentUsers = users.filter(user => user.role === 'student');
+  const activeUsers = users.filter(user => user.status === 'Active');
+  const totalAdmins = adminUsers.length;
+  const totalStudents = studentUsers.length;
+  const activeRoles = new Set(users.map(user => user.role).filter(Boolean)).size;
 
   return (
     <div className="space-y-6">
@@ -243,7 +318,7 @@ export default function UserManagementPage({}: UserManagementPageProps) {
               <div>
                 <h1 className="text-4xl mb-2">User Management</h1>
                 <p className="text-muted-foreground">
-                  Manage system administrators, moderators, and permissions
+                  Manage system administrators and their permissions
                 </p>
               </div>
               <Button
@@ -261,47 +336,53 @@ export default function UserManagementPage({}: UserManagementPageProps) {
             <div className="lg:col-span-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>System Users</CardTitle>
-                  <CardDescription>View and manage all system users and their permissions</CardDescription>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>View and manage all administrators and students with their permissions</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <TabsList className="grid w-full grid-cols-3 mb-6">
+                      <TabsTrigger value="all">
+                        All Users
+                      </TabsTrigger>
                       <TabsTrigger value="admins">
-                        Admins ({admins.length})
+                        Admins
                       </TabsTrigger>
-                      <TabsTrigger value="moderators">
-                        Moderators ({moderators.length})
-                      </TabsTrigger>
-                      <TabsTrigger value="system">
-                        System Users ({systemUsers.length})
+                      <TabsTrigger value="students">
+                        Students
                       </TabsTrigger>
                     </TabsList>
 
+                    <TabsContent value="all" className="mt-0">
+                      <UserTable
+                        users={getUsersByTab()}
+                        onEditPermissions={handleEditPermissions}
+                        onDelete={handleDeleteUser}
+                        getPermissionSummary={getPermissionSummary}
+                        loading={loading}
+                        error={error}
+                      />
+                    </TabsContent>
+
                     <TabsContent value="admins" className="mt-0">
                       <UserTable
-                        users={admins}
+                        users={getUsersByTab()}
                         onEditPermissions={handleEditPermissions}
                         onDelete={handleDeleteUser}
                         getPermissionSummary={getPermissionSummary}
+                        loading={loading}
+                        error={error}
                       />
                     </TabsContent>
 
-                    <TabsContent value="moderators" className="mt-0">
+                    <TabsContent value="students" className="mt-0">
                       <UserTable
-                        users={moderators}
+                        users={getUsersByTab()}
                         onEditPermissions={handleEditPermissions}
                         onDelete={handleDeleteUser}
                         getPermissionSummary={getPermissionSummary}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="system" className="mt-0">
-                      <UserTable
-                        users={systemUsers}
-                        onEditPermissions={handleEditPermissions}
-                        onDelete={handleDeleteUser}
-                        getPermissionSummary={getPermissionSummary}
+                        loading={loading}
+                        error={error}
                       />
                     </TabsContent>
                   </Tabs>
@@ -311,20 +392,20 @@ export default function UserManagementPage({}: UserManagementPageProps) {
 
             {/* Right Panel - Summary */}
             <div className="space-y-6">
-              {/* Total Admins */}
+              {/* Total Users */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-muted-foreground">Total Admins</CardTitle>
+                  <CardTitle className="text-sm text-muted-foreground">Total Users</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-[#002B7F] rounded-lg flex items-center justify-center">
-                      <Shield className="text-white" size={24} />
+                      <Users className="text-white" size={24} />
                     </div>
                     <div>
-                      <div className="text-3xl">{totalAdmins}</div>
+                      <div className="text-3xl">{totalUsers}</div>
                       <div className="text-sm text-muted-foreground">
-                        {admins.filter(a => a.status === 'Active').length} active
+                        {activeUsers.length} active
                       </div>
                     </div>
                   </div>
@@ -349,19 +430,21 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                 </CardContent>
               </Card>
 
-              {/* Pending Requests */}
+              {/* Total Admins */}
               <Card>
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm text-muted-foreground">Pending Requests</CardTitle>
+                  <CardTitle className="text-sm text-muted-foreground">Administrators</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
-                      <Clock className="text-white" size={24} />
+                    <div className="w-12 h-12 bg-[#002B7F] rounded-lg flex items-center justify-center">
+                      <Shield className="text-white" size={24} />
                     </div>
                     <div>
-                      <div className="text-3xl">{pendingRequests}</div>
-                      <div className="text-sm text-muted-foreground">awaiting approval</div>
+                      <div className="text-3xl">{totalAdmins}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {adminUsers.filter(a => a.status === 'Active').length} active
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -375,19 +458,15 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                 <CardContent className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Super Admins</span>
-                    <Badge className="bg-[#002B7F]">1</Badge>
+                    <Badge className="bg-[#002B7F]">{adminUsers.filter(a => a.role === 'superadmin').length}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Admins</span>
-                    <Badge className="bg-[#FFB400] text-[#002B7F]">{totalAdmins - 1}</Badge>
+                    <Badge className="bg-[#FFB400] text-[#002B7F]">{adminUsers.filter(a => a.role === 'admin').length}</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm">Moderators</span>
-                    <Badge variant="secondary">{totalModerators}</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">System Users</span>
-                    <Badge variant="secondary">{totalSystemUsers}</Badge>
+                    <span className="text-sm">Students</span>
+                    <Badge variant="secondary">{totalStudents}</Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -404,7 +483,7 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                     onClick={() => setShowAddUserModal(true)}
                   >
                     <Plus size={16} className="mr-2" />
-                    Add New User
+                    Add New Admin
                   </Button>
                   <Button variant="outline" className="w-full justify-start">
                     <Settings size={16} className="mr-2" />
@@ -426,7 +505,7 @@ export default function UserManagementPage({}: UserManagementPageProps) {
           <DialogHeader>
             <DialogTitle>Edit Permissions</DialogTitle>
             <DialogDescription>
-              Configure module permissions for {selectedUser?.name}
+              Configure module permissions for {selectedUser?.username || selectedUser?.name || 'User'}
             </DialogDescription>
           </DialogHeader>
 
@@ -436,14 +515,14 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-[#002B7F] rounded-full flex items-center justify-center">
                     <span className="text-white">
-                      {selectedUser.name.charAt(0)}
+                      {(selectedUser.username || selectedUser.name || '?').charAt(0)}
                     </span>
                   </div>
                   <div>
-                    <h3>{selectedUser.name}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                    <h3>{selectedUser.username || selectedUser.name || 'Unknown User'}</h3>
+                    <p className="text-sm text-muted-foreground">{selectedUser.email || 'No email'}</p>
                   </div>
-                  <Badge className="ml-auto">{selectedUser.role}</Badge>
+                  <Badge className="ml-auto">{selectedUser.role || 'No role'}</Badge>
                 </div>
               </div>
 
@@ -556,9 +635,9 @@ export default function UserManagementPage({}: UserManagementPageProps) {
       <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add New Admin</DialogTitle>
+            <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>
-              Create a new administrator account with custom permissions
+              Create a new user account with custom permissions
             </DialogDescription>
           </DialogHeader>
 
@@ -569,6 +648,8 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                 id="name"
                 placeholder="Enter full name"
                 className="mt-1"
+                value={newUserForm.name}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, name: e.target.value }))}
               />
             </div>
             <div>
@@ -578,6 +659,8 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                 type="email"
                 placeholder="user@injibara.edu.et"
                 className="mt-1"
+                value={newUserForm.email}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, email: e.target.value }))}
               />
             </div>
             <div>
@@ -585,10 +668,12 @@ export default function UserManagementPage({}: UserManagementPageProps) {
               <select
                 id="role"
                 className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-input-background"
+                value={newUserForm.role}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, role: e.target.value as 'student' | 'admin' | 'superadmin' }))}
               >
-                <option>Admin</option>
-                <option>Moderator</option>
-                <option>System User</option>
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+                <option value="superadmin">Super Admin</option>
               </select>
             </div>
             <div>
@@ -598,6 +683,8 @@ export default function UserManagementPage({}: UserManagementPageProps) {
                 type="password"
                 placeholder="Enter temporary password"
                 className="mt-1"
+                value={newUserForm.password}
+                onChange={(e) => setNewUserForm(prev => ({ ...prev, password: e.target.value }))}
               />
             </div>
           </div>
@@ -612,9 +699,19 @@ export default function UserManagementPage({}: UserManagementPageProps) {
             <Button
               className="bg-[#002B7F] hover:bg-[#001f5c]"
               onClick={handleAddUser}
+              disabled={isCreatingUser}
             >
-              <Plus className="mr-2" size={16} />
-              Add User
+              {isCreatingUser ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2" size={16} />
+                  Add User
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -629,9 +726,35 @@ interface UserTableProps {
   onEditPermissions: (user: User) => void;
   onDelete: (user: User) => void;
   getPermissionSummary: (user: User) => string;
+  loading?: boolean;
+  error?: string | null;
 }
 
-function UserTable({ users, onEditPermissions, onDelete, getPermissionSummary }: UserTableProps) {
+function UserTable({ users, onEditPermissions, onDelete, getPermissionSummary, loading, error }: UserTableProps) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-muted-foreground">Loading users...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
+  }
+
+  if (users.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-muted-foreground">No users found</div>
+      </div>
+    );
+  }
+
   return (
     <Table>
       <TableHeader>
@@ -646,19 +769,19 @@ function UserTable({ users, onEditPermissions, onDelete, getPermissionSummary }:
       </TableHeader>
       <TableBody>
         {users.map((user) => (
-          <TableRow key={user.id}>
+          <TableRow key={user.id || user._id || Math.random()}>
             <TableCell>
               <div>
-                <div>{user.name}</div>
-                <div className="text-xs text-muted-foreground">{user.email}</div>
+                <div>{user.username || user.name || 'Unknown User'}</div>
+                <div className="text-xs text-muted-foreground">{user.email || 'No email'}</div>
               </div>
             </TableCell>
             <TableCell>
               <Badge
-                variant={user.role === "Super Admin" ? "default" : "secondary"}
-                className={user.role === "Super Admin" ? "bg-[#002B7F]" : ""}
+                variant={user.role === "superadmin" ? "default" : "secondary"}
+                className={user.role === "superadmin" ? "bg-[#002B7F]" : ""}
               >
-                {user.role}
+                {user.role || 'No role'}
               </Badge>
             </TableCell>
             <TableCell>
@@ -672,11 +795,11 @@ function UserTable({ users, onEditPermissions, onDelete, getPermissionSummary }:
                 user.status === "Suspended" ? "bg-red-500" :
                 "bg-gray-500"
               }>
-                {user.status}
+                {user.status || 'Unknown'}
               </Badge>
             </TableCell>
             <TableCell className="text-sm text-muted-foreground">
-              {user.lastLogin}
+              {user.lastLogin || 'Never'}
             </TableCell>
             <TableCell>
               <div className="flex gap-2">
@@ -700,6 +823,7 @@ function UserTable({ users, onEditPermissions, onDelete, getPermissionSummary }:
                   size="sm"
                   onClick={() => onDelete(user)}
                   title="Delete User"
+                  className="text-red-500 hover:text-red-700"
                 >
                   <Trash2 size={16} />
                 </Button>

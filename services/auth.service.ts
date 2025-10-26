@@ -19,4 +19,20 @@ export const authService = {
     });
     return response.data;
   },
+
+  register: async (email: string, password: string, name: string): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/register', {
+      email,
+      password,
+      name,
+    });
+    return response.data;
+  },
+
+  validateToken: async (token: string): Promise<LoginResponse> => {
+    const response = await apiClient.post<LoginResponse>('/auth/validate', {
+      token,
+    });
+    return response.data;
+  },
 };
