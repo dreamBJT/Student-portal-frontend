@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Link from "next/link";
 
 export default function NewsPage() {
   const BASE_URL = "https://student-portal-backend-0tur.onrender.com";
@@ -44,7 +45,13 @@ export default function NewsPage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editCategory, setEditCategory] = useState<string>("all");
+  const [editContent, setEditContent] = useState("");
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
 
   // Fetch all news
   const fetchArticles = async () => {
@@ -72,11 +79,14 @@ export default function NewsPage() {
     if (!title || !content) return alert("Title and content are required");
     try {
       setLoading(true);
-      const payload = { title, category, content, imageUrl };
+      const form = new FormData();
+      form.append("title", title);
+      form.append("category", category);
+      form.append("content", content);
+      if (imageFile) form.append("image", imageFile);
       const res = await fetch(`${BASE_URL}/news`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: form,
       });
       if (!res.ok) throw new Error(`Failed to create news: ${res.status}`);
       const newArticle = await res.json();
@@ -84,7 +94,7 @@ export default function NewsPage() {
       setTitle("");
       setCategory("all");
       setContent("");
-      setImageUrl("");
+      setImageFile(null);
       setOpen(false);
     } catch (e: any) {
       console.error(e);
@@ -193,11 +203,11 @@ export default function NewsPage() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Image URL</Label>
+                  <Label>Image</Label>
                   <Input
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="Optional image URL"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
                   />
                 </div>
               </div>
@@ -216,6 +226,90 @@ export default function NewsPage() {
                 </DialogClose>
                 <Button type="submit" className="bg-blue-900 hover:bg-blue-800">
                   {loading ? "Publishing..." : "Publish Post"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        {/* Edit Dialog */}
+        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit News Post</DialogTitle>
+              <DialogDescription>Update the selected news article</DialogDescription>
+            </DialogHeader>
+            <form
+              className="space-y-8"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!editing?._id) return;
+                try {
+                  setLoading(true);
+                  const form = new FormData();
+                  form.append("title", editTitle);
+                  form.append("category", editCategory);
+                  form.append("content", editContent);
+                  if (editImageFile) form.append("image", editImageFile);
+                  const res = await fetch(`${BASE_URL}/news/${editing._id}`, {
+                    method: "PATCH",
+                    body: form,
+                  });
+                  if (!res.ok) throw new Error(`Failed to update news: ${res.status}`);
+                  const updated = await res.json();
+                  setArticles((prev) => prev.map((a) => (a._id === updated._id ? updated : a)));
+                  setEditOpen(false);
+                  setEditing(null);
+                  setEditImageFile(null);
+                } catch (err: any) {
+                  console.error(err);
+                  alert(err.message || "Failed to update news");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+            >
+              <div className="space-y-3">
+                <Label>Title</Label>
+                <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Category</Label>
+                  <Select value={editCategory} onValueChange={setEditCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="election">Election</SelectItem>
+                      <SelectItem value="general">General</SelectItem>
+                      <SelectItem value="leadership">Leadership</SelectItem>
+                      <SelectItem value="all">All</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Image</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-5">
+                <Label>Content</Label>
+                <Textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="min-h-40"
+                />
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <DialogClose asChild>
+                  <Button variant="secondary">Cancel</Button>
+                </DialogClose>
+                <Button type="submit" className="bg-blue-900 hover:bg-blue-800">
+                  {loading ? "Updating..." : "Update Post"}
                 </Button>
               </DialogFooter>
             </form>
@@ -257,6 +351,17 @@ export default function NewsPage() {
                           className="w-4 h-4 cursor-pointer"
                           onClick={() => handleView(a._id)}
                         />
+                        <Edit
+                          className="w-4 h-4 cursor-pointer text-blue-600"
+                          onClick={() => {
+                            setEditing(a);
+                            setEditTitle(a.title || "");
+                            setEditCategory(a.category || "all");
+                            setEditContent(a.content || "");
+                            setEditImageFile(null);
+                            setEditOpen(true);
+                          }}
+                        />
                         <Trash
                           className="w-4 h-4 cursor-pointer text-red-600"
                           onClick={() => handleDelete(a._id)}
@@ -273,9 +378,9 @@ export default function NewsPage() {
         <Card>
           <CardContent className="p-4 space-y-3">
             <h2 className="text-lg font-semibold">Preview</h2>
-            {preview.image && (
+            {(preview.image || preview.imageUrl) && (
               <img
-                src={preview.image}
+                src={preview.image || preview.imageUrl}
                 alt="preview"
                 className="w-full h-40 rounded-md object-cover"
               />
@@ -291,6 +396,20 @@ export default function NewsPage() {
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <span>📊 {preview.views ?? 0}</span>
+            </div>
+            {(
+              preview?.createdAt || preview?.publishedAt || preview?.updatedAt
+            ) && (
+              <div className="text-xs text-gray-500">
+                {new Date(
+                  (preview.createdAt || preview.publishedAt || preview.updatedAt) as string
+                ).toLocaleString()}
+              </div>
+            )}
+            <div>
+              <Link href="/news">
+                <Button variant="outline" size="sm">More preview</Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
