@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -9,19 +10,36 @@ import {
 } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Badge } from "../../../components/ui/badge";
-import { FileText, Download, Filter } from "lucide-react";
+import { FileText, Download, Filter, RefreshCw, XCircle } from "lucide-react";
+import { activityLogsService, type ActivityLog, type ActivityLogStats } from '@/services/activity-logs.service';
 
 export default function ActivityLogsPage() {
-  const activities = [
-    { user: "admin@injibara.edu.et", action: "Created new election", time: "5 mins ago", type: "create", status: "success" },
-    { user: "john@injibara.edu.et", action: "Cast vote", time: "12 mins ago", type: "vote", status: "success" },
-    { user: "system", action: "Database backup", time: "1 hour ago", type: "system", status: "success" },
-    { user: "sarah@injibara.edu.et", action: "Failed login attempt", time: "2 hours ago", type: "auth", status: "failed" },
-    { user: "mike@injibara.edu.et", action: "Updated news article", time: "3 hours ago", type: "update", status: "success" },
-    { user: "admin@injibara.edu.et", action: "Deleted user account", time: "4 hours ago", type: "delete", status: "success" },
-    { user: "system", action: "Security scan completed", time: "5 hours ago", type: "system", status: "success" },
-    { user: "jane@injibara.edu.et", action: "Profile updated", time: "6 hours ago", type: "update", status: "success" },
-  ];
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [stats, setStats] = useState<ActivityLogStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const [logsData, statsData] = await Promise.all([
+        activityLogsService.getRecentLogs(50),
+        activityLogsService.getLogStats()
+      ]);
+      setLogs(logsData);
+      setStats(statsData);
+    } catch (err) {
+      setError('Failed to fetch activity logs');
+      console.error('Error fetching activity logs:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -57,6 +75,10 @@ export default function ActivityLogsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={fetchData}>
+            <RefreshCw size={16} className={isLoading ? "animate-spin" : ""} />
+            Refresh
+          </Button>
           <Button variant="outline" className="gap-2">
             <Filter size={16} />
             Filter
@@ -68,6 +90,28 @@ export default function ActivityLogsPage() {
         </div>
       </div>
 
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 text-red-800">
+              <XCircle className="text-red-500" size={20} />
+              <span>{error}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isLoading && !error && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="animate-spin" size={20} />
+              <span>Loading activity logs...</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid md:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
@@ -77,7 +121,7 @@ export default function ActivityLogsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">1,247</div>
+            <div className="text-3xl font-bold">{stats?.totalLogs || 0}</div>
             <p className="text-sm text-muted-foreground">Last 24 hours</p>
           </CardContent>
         </Card>
@@ -90,8 +134,8 @@ export default function ActivityLogsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">1,189</div>
-            <p className="text-sm text-muted-foreground">95.3% success rate</p>
+            <div className="text-3xl font-bold">{stats?.successfulLogs || 0}</div>
+            <p className="text-sm text-muted-foreground">{stats?.successRate || '0'}% success rate</p>
           </CardContent>
         </Card>
 
@@ -103,8 +147,8 @@ export default function ActivityLogsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">58</div>
-            <p className="text-sm text-muted-foreground">4.7% failure rate</p>
+            <div className="text-3xl font-bold">{stats?.failedLogs || 0}</div>
+            <p className="text-sm text-muted-foreground">{stats?.failureRate || '0'}% failure rate</p>
           </CardContent>
         </Card>
 
@@ -116,7 +160,7 @@ export default function ActivityLogsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">23</div>
+            <div className="text-3xl font-bold">{stats?.authLogs || 0}</div>
             <p className="text-sm text-muted-foreground">Login attempts</p>
           </CardContent>
         </Card>
@@ -129,29 +173,43 @@ export default function ActivityLogsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {activities.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between py-3 border-b last:border-0">
-                <div className="flex items-center gap-3">
-                  <Badge className={getTypeColor(activity.type)}>
-                    {getTypeLabel(activity.type)}
-                  </Badge>
-                  <div>
-                    <p className="text-sm font-medium">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground">{activity.user}</p>
+            {logs.length > 0 ? (
+              logs.map((log) => (
+                <div key={log.id} className="flex items-center justify-between py-3 border-b last:border-0">
+                  <div className="flex items-center gap-3">
+                    <Badge className={getTypeColor(log.type)}>
+                      {getTypeLabel(log.type)}
+                    </Badge>
+                    <div>
+                      <p className="text-sm font-medium">{log.action}</p>
+                      <p className="text-xs text-muted-foreground">{log.user}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge className={log.status === "success" ? "bg-green-500" : "bg-red-500"}>
+                      {log.status}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">{log.time}</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <Badge className={activity.status === "success" ? "bg-green-500" : "bg-red-500"}>
-                    {activity.status}
-                  </Badge>
-                  <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
+              ))
+            ) : (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <FileText className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p className="text-gray-500 font-medium">No activity logs found</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Activity logs will appear here once users start interacting with the system.
+                  </p>
                 </div>
               </div>
-            ))}
+            )}
           </div>
-          <Button variant="outline" className="w-full mt-4">
-            Load More Activities
-          </Button>
+          {logs.length > 0 && (
+            <Button variant="outline" className="w-full mt-4">
+              Load More Activities
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
